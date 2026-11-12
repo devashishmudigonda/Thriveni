@@ -46,6 +46,21 @@ English surveys work without a Gemini key. Other languages require `GEMINI_API_K
 
 Admin access is checked against `survey_admins` after Supabase password authentication. Add the Supabase service-role key as the server-only `SUPABASE_SERVICE_ROLE_KEY` for the translation cache. Never put a service-role key or OpenAI key in any `NEXT_PUBLIC_` variable.
 
+### Inviting administrators
+
+1. Add the new administrator's email to `public.survey_admins` before they sign in:
+
+   ```sql
+   insert into public.survey_admins (email)
+   values (lower('newadmin@example.com'))
+   on conflict (email) do nothing;
+   ```
+2. In **Authentication → URL Configuration**, add `https://YOUR-DEPLOYED-DOMAIN/auth/set-password` to the allowed **Redirect URLs**. Keep the root domain as the **Site URL**.
+3. Invite the user from **Authentication → Users** and set the invitation redirect URL to `https://YOUR-DEPLOYED-DOMAIN/auth/set-password`. Keep the invite email template's confirmation link as `{{ .ConfirmationURL }}`.
+4. The invitee opens the newest invitation email, follows the link, and creates a password on the set-password page. They can then sign in at `https://YOUR-DEPLOYED-DOMAIN/admin` with their invited email and new password.
+
+For local testing, add `http://localhost:3000/auth/set-password` to the allowed Redirect URLs and use that URL as the invitation redirect. Never share a password or service-role key in the invitation email.
+
 ## Translation setup
 
 Create a Gemini API key in [Google AI Studio](https://aistudio.google.com/api-keys) and set `GEMINI_API_KEY` in `.env.local` and in the deployment environment. The key is used only by server-side translation routes. Set `GEMINI_TRANSLATION_MODEL` only if you want to override the default `gemini-3.5-flash-lite`. Public survey translations are saved in Supabase and reused across respondents. A non-English response is sent to Gemini only when an administrator explicitly requests its English translation; that translation is stored on the response record for future dashboard views.
